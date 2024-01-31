@@ -112,7 +112,7 @@ print(msgbox(msg))
 
 salted_password = hashlib.pbkdf2_hmac('sha256', PASSWORD.encode(), SALT, ITERATIONS)
 #print(salted_password)
-client_key = hmac.digest(b'Client Key', salted_password, 'sha256')
+client_key = hmac.digest(salted_password, b'Client Key', 'sha256')
 stored_key = hashlib.sha256(client_key).digest()
 #print(client_key)
 #print(stored_key)
@@ -198,7 +198,7 @@ else:
 
 # Now server provides verifier to client
 
-server_key = hmac.digest(b'Server Key', salted_password, 'sha256')
+server_key = hmac.digest(salted_password, b'Server Key', 'sha256')
 server_signature = hmac.digest(server_key, auth_message.encode(), 'sha256')
 server_signature_b64 = base64.b64encode(server_signature).decode()
 

@@ -22,6 +22,15 @@ import hashlib
 import hmac
 import re
 
+# Some nastiness bacause I don't really want to require people to install anything to run this script.
+try:
+    from passlib.utils import saslprep2
+except ImportError:
+    from sys import stderr
+    def saslprep(source, param='Value'):
+        print("WARNING: Passlib not found, so saslprep is not being performed on username. If you care about that, see https://pypi.org/project/passlib/", file=stderr)
+        return source
+
 # Use reproducible numbers if RNG = random
 random.seed(1337)
 
@@ -58,12 +67,18 @@ ITERATIONS = 4000
 # This is the client's final message in Ulfheim's TLSv1.2 example: https://tls.ulfheim.net/
 TLS_UNIQUE = bytes([0xcf, 0x91, 0x96, 0x26, 0xf1, 0x36, 0x0c, 0x53, 0x6a, 0xaa, 0xd7, 0x3a])
 
+# Prepare the username per RF5802
+username_prepped = saslprep(source=USERNAME, param="Username").replace(',', '=2C').replace('=','=2D')
+# A true client will fail if the prepped username is empty
+# A true server will reject usernames where ',' or '=' are not re-encoded as =2C and =2D.
 
 # Generate the client nonce
 c_nonce = RNG.randbytes(NONCE_LENGTH)
+# From RFC5802, nonce can be any ASCII printable character except ',',
+# but we use base64 which does not include that character anyway...
 c_nonce_b64 = base64.b64encode(c_nonce).decode()
 
-client_first_message_bare = f'n={USERNAME},r={c_nonce_b64}'
+client_first_message_bare = f'n={username_prepped},r={c_nonce_b64}'
 client_first_message = f'p=tls-unique,,{client_first_message_bare}'
 
 print(f'''Client's first message: 
